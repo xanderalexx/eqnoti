@@ -43,13 +43,18 @@ def returnembed(data_, geo):
     place = data_['place']
     long = geo['coordinates'][0]
     lat = geo['coordinates'][1]
-    geourl = "https://www.google.com/maps/search/?api=1&query=" + str(lat) + "," + str(long)
+    geourl = "https://www.google.com/maps/search/?api=1&query=" + str(lat) + "000" + "%2C" + str(long) + "000"
     
-    embeded=discord.Embed(title="https://earthquake.usgs.gov/", url=urll, color=discord.Color.blue())
+    embeded=discord.Embed(title="Earthquake Detected", color=discord.Color.blue())
     embeded.set_author(name="eqnoti", icon_url="https://cdn.discordapp.com/avatars/919764620003135538/0cf2d9fbf4a1f3f51da64487c08be936.webp")
     embeded.set_thumbnail(url="https://www.wavy.com/wp-content/uploads/sites/3/2020/10/USGS_logo_green_SQUARE.png")
     embeded.add_field(name = "**What:** ", value = "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + convertplace(place))
     embeded.add_field(name = "**Where:**", value = geourl)
+    embeded.add_field(name = "**Details:**", value = urll)
+    #pings = "<@&921000883322511400>"
+    #if mag >= 3.5:
+    #    pings = pings + ", <@&921002317766086656>"
+    #embeded.add_field(name = "**Pings:**", value = pings)
     return embeded
     
 while True:
@@ -72,6 +77,10 @@ while True:
         place = data_['place']
         embeded = returnembed(data_, data['features'][0]['geometry'])
         wclient.send(embed=embeded)
+        pings = "<@&921000883322511400>"
+        if mag >= 3.5:
+            pings = pings + ", <@&921002317766086656>"
+        wclient.send(pings)
         #neweq(round(mag, 1), title, urll)
         #client.get_channel(config.channelid).send("Earthquake! " + title)
         sevenseq.setnum(round(mag, 1), 2)
