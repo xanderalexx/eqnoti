@@ -10,6 +10,8 @@ import sys
 
 updates = 0
 id = 0
+datalist = ['']
+datalist2 = ['']
 
 wclient = Webhook.from_url(config.webhookurl, adapter=RequestsWebhookAdapter())
 
@@ -43,9 +45,11 @@ def returnembed(data_, geo):
     place = data_['place']
     long = geo['coordinates'][0]
     lat = geo['coordinates'][1]
+    epoch = data_['time']
     geourl = "https://www.google.com/maps/search/?api=1&query=" + str(lat) + "000" + "%2C" + str(long) + "000"
     
-    embeded=discord.Embed(title="Earthquake Detected", color=discord.Color.blue())
+    timestamp = time.strftime('%m/%d/%Y %I:%M:%S %p', time.localtime(epoch / 1000))
+    embeded=discord.Embed(title="Earthquake Detected @ " + timestamp, color=discord.Color.blue())
     embeded.set_author(name="eqnoti", icon_url="https://cdn.discordapp.com/avatars/919764620003135538/0cf2d9fbf4a1f3f51da64487c08be936.webp")
     embeded.set_thumbnail(url="https://www.wavy.com/wp-content/uploads/sites/3/2020/10/USGS_logo_green_SQUARE.png")
     embeded.add_field(name = "**What:** ", value = "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + convertplace(place))
@@ -69,21 +73,33 @@ while True:
             print(str(updates) + " update since last quake")
         else:
             print(str(updates) + " updates since last quake")
+    elif data_['ids'] in datalist and not datalist2:
+        print("Earthquake already in datalist detected: \n" + str(mag) + ": " + "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + convertplace(place))
+        datalist2.append(data_['ids'])
     else:
+        datalist.append(data_['ids'])
         id = data_['time']
         mag = data_['mag']
         title = data_['title']
         urll = data_['url']
         place = data_['place']
+        newplace = convertplace(place)
         embeded = returnembed(data_, data['features'][0]['geometry'])
-        wclient.send(embed=embeded)
         pings = "<@&921000883322511400>"
         if mag >= 3.5:
             pings = pings + ", <@&921002317766086656>"
-        wclient.send(pings)
+        wclient.send(pings + " " + str(round(mag, 1)) + " EQ " + newplace)
+        wclient.send(embed=embeded)
         #neweq(round(mag, 1), title, urll)
         #client.get_channel(config.channelid).send("Earthquake! " + title)
+        print(str(mag) + ": " + "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + newplace)
         sevenseq.setnum(round(mag, 1), 2)
-        print(str(mag) + ": " + "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + convertplace(place))
         updates = 0
-    time.sleep(5)
+    sevenseq.dot(True)
+    time.sleep(0.1)
+    sevenseq.dot(False)
+    time.sleep(2.4)
+    sevenseq.dot(True)
+    time.sleep(0.1)
+    sevenseq.dot(False)
+    time.sleep(2.4)
