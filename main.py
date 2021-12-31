@@ -73,7 +73,7 @@ while True:
             print(str(updates) + " update since last quake")
         else:
             print(str(updates) + " updates since last quake")
-    elif data_['ids'] in datalist and not datalist2:
+    elif data_['ids'] in datalist and data_['ids'] not in datalist2:
         print("Earthquake already in datalist detected: \n" + str(mag) + ": " + "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + convertplace(place))
         datalist2.append(data_['ids'])
     else:
@@ -86,7 +86,7 @@ while True:
         newplace = convertplace(place)
         embeded = returnembed(data_, data['features'][0]['geometry'])
         pings = "<@&921000883322511400>"
-        if mag >= 3.5:
+        if round(mag, 1) >= 3.5:
             pings = pings + ", <@&921002317766086656>"
         wclient.send(pings + " " + str(round(mag, 1)) + " EQ " + newplace)
         wclient.send(embed=embeded)
