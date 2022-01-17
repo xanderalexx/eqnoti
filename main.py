@@ -14,6 +14,7 @@ datalist = ['']
 datalist2 = ['']
 
 wclient = Webhook.from_url(config.webhookurl, adapter=RequestsWebhookAdapter())
+errorclient = Webhook.from_url(config.errorwebhookurl, adapter=RequestsWebhookAdapter())
 
 session = requests.Session()
 today = date.today()
@@ -60,46 +61,73 @@ def returnembed(data_, geo):
     #    pings = pings + ", <@&921002317766086656>"
     #embeded.add_field(name = "**Pings:**", value = pings)
     return embeded
-    
-while True:
-    initdata = session.get(url)
-    data = json.loads(initdata.text)
-    data_ = data['features'][0]['properties']
-    curtime = data['features'][0]['properties']['time']
-    if curtime == id:
-        updates = updates + 1
-        #sevenseq.setnum(updates)
-        if updates <= 1:
-            print(str(updates) + " update since last quake")
+
+def errorhandler(ex):
+    print("eqnoti is currently experiencing an error and is being handled /nHere is the error message: /n" + str(ex))
+    epoch = time.time()
+    current_time = time.strftime('%I:%M:%S %p %m/%d/%Y', time.localtime(epoch))
+    while True:
+        try:
+            errormessage = "eqnoti has encountered an error @ " + current_time + ". Here is the error message: '" + str(ex) + "'"
+            errorclient.send(errormessage)
+        except:
+            continue
         else:
-            print(str(updates) + " updates since last quake")
-    elif data_['ids'] in datalist and data_['ids'] not in datalist2:
-        print("Earthquake already in datalist detected: \n" + str(mag) + ": " + "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + convertplace(place))
-        datalist2.append(data_['ids'])
+            break
+        time.sleep(0.5)
+
+while True:
+    try:
+        initdata = session.get(url)
+    except Exception as e:
+        print(str(e))
+        errorhandler(e)
     else:
-        datalist.append(data_['ids'])
-        id = data_['time']
-        mag = data_['mag']
-        title = data_['title']
-        urll = data_['url']
-        place = data_['place']
-        newplace = convertplace(place)
-        embeded = returnembed(data_, data['features'][0]['geometry'])
-        pings = "<@&921000883322511400>"
-        if round(mag, 1) >= 3.5:
-            pings = pings + ", <@&921002317766086656>"
-        wclient.send(pings + " " + str(round(mag, 1)) + " EQ " + newplace)
-        wclient.send(embed=embeded)
-        #neweq(round(mag, 1), title, urll)
-        #client.get_channel(config.channelid).send("Earthquake! " + title)
-        print(str(mag) + ": " + "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + newplace)
-        sevenseq.setnum(round(mag, 1), 2)
-        updates = 0
-    sevenseq.dot(True)
-    time.sleep(0.1)
-    sevenseq.dot(False)
-    time.sleep(2.4)
-    sevenseq.dot(True)
-    time.sleep(0.1)
-    sevenseq.dot(False)
-    time.sleep(2.4)
+        try:
+            data = json.loads(initdata.text)
+            try:
+                data_ = data['features'][0]['properties']
+            except:
+                sevenseq.setnum(0, 1)
+            else:
+                curtime = data['features'][0]['properties']['time']
+                if curtime == id:
+                    updates = updates + 1
+                    #sevenseq.setnum(updates)
+                    if updates <= 1:
+                        print(str(updates) + " update since last quake")
+                    else:
+                        print(str(updates) + " updates since last quake")
+                elif data_['ids'] in datalist and data_['ids'] not in datalist2:
+                    print("Earthquake already in datalist detected: \n" + str(mag) + ": " + "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + convertplace(place))
+                    datalist2.append(data_['ids'])
+                else:
+                    datalist.append(data_['ids'])
+                    id = data_['time']
+                    mag = data_['mag']
+                    title = data_['title']
+                    urll = data_['url']
+                    place = data_['place']
+                    newplace = convertplace(place)
+                    embeded = returnembed(data_, data['features'][0]['geometry'])
+                    pings = "<@&921000883322511400>"
+                    if round(mag, 1) >= 3.5:
+                        pings = pings + ", <@&921002317766086656>"
+                    wclient.send(pings + " " + str(round(mag, 1)) + " MMI EQ " + newplace)
+                    wclient.send(embed=embeded)
+                    #neweq(round(mag, 1), title, urll)
+                    #client.get_channel(config.channelid).send("Earthquake! " + title)
+                    print(str(mag) + ": " + "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + newplace)
+                    sevenseq.setnum(round(mag, 1), 2)
+                    updates = 0
+        except Exception as e:
+            errorhandler(e)
+            print("url: " + url)
+        sevenseq.dot(True)
+        time.sleep(0.1)
+        sevenseq.dot(False)
+        time.sleep(2.4)
+        sevenseq.dot(True)
+        time.sleep(0.1)
+        sevenseq.dot(False)
+        time.sleep(2.4)
