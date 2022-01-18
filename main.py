@@ -24,7 +24,7 @@ longitude = "-117.981627"
 maxradius = "140.25834"
 orderby = "time"
 date = today.strftime("%y-%m-%d")
-url = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&latitude=" + latitude + "&longitude=" + longitude + "&maxradiuskm=" + maxradius + "&orderby=" + orderby + "&limit=1" + "&starttime=" + date
+url = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&latitude=" + latitude + "&longitude=" + longitude + "&maxradiuskm=" + maxradius + "&orderby=" + orderby + "&limit=1"# + "&starttime=" + date
 
 def convertplace(x):
     hmm = "ab"
@@ -63,7 +63,7 @@ def returnembed(data_, geo):
     return embeded
 
 def errorhandler(ex):
-    print("eqnoti is currently experiencing an error and is being handled /nHere is the error message: /n" + str(ex))
+    print("eqnoti is currently experiencing an error and is being handled. Here is the error message: \n" + str(ex))
     epoch = time.time()
     current_time = time.strftime('%I:%M:%S %p %m/%d/%Y', time.localtime(epoch))
     while True:
@@ -87,23 +87,25 @@ while True:
             data = json.loads(initdata.text)
             try:
                 data_ = data['features'][0]['properties']
-            except:
+            except Exception as e:
                 sevenseq.setnum(0, 1)
+                errorhandler(e)
+                print(url)
             else:
-                curtime = data['features'][0]['properties']['time']
+                curtime = data['features'][0]['properties']['ids']
                 if curtime == id:
                     updates = updates + 1
                     #sevenseq.setnum(updates)
                     if updates <= 1:
-                        print(str(updates) + " update since last quake")
+                        print(str(updates) + " update since last quake (curtime = '" + curtime + "', id = '" + id + "")
                     else:
-                        print(str(updates) + " updates since last quake")
+                        print(str(updates) + " updates since last quake (curtime = '" + curtime + "', id = '" + id + "")
                 elif data_['ids'] in datalist and data_['ids'] not in datalist2:
                     print("Earthquake already in datalist detected: \n" + str(mag) + ": " + "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + convertplace(place))
                     datalist2.append(data_['ids'])
                 else:
                     datalist.append(data_['ids'])
-                    id = data_['time']
+                    id = data_['ids']
                     mag = data_['mag']
                     title = data_['title']
                     urll = data_['url']
