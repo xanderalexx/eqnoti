@@ -8,6 +8,14 @@ from discord import Webhook, RequestsWebhookAdapter
 import sevenseq.sevenseq as sevenseq
 import sys
 
+print(len(sys.argv), str(sys.argv))
+silentmode = 0
+
+try:
+    if sys.argv[1] == "silent":
+        silentmode = 1
+except:
+    print("")
 updates = 0
 id = 0
 datalist = ['']
@@ -88,7 +96,8 @@ while True:
             try:
                 data_ = data['features'][0]['properties']
             except Exception as e:
-                sevenseq.setnum(0, 1)
+                if(silentmode == 0):
+                    sevenseq.setnum(0, 1)
                 errorhandler(e)
                 print(url)
             else:
@@ -120,16 +129,20 @@ while True:
                     #neweq(round(mag, 1), title, urll)
                     #client.get_channel(config.channelid).send("Earthquake! " + title)
                     print(str(mag) + ": " + "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + newplace)
-                    sevenseq.setnum(round(mag, 1), 2)
+                    if(silentmode == 0):
+                        sevenseq.setnum(round(mag, 1), 2)
                     updates = 0
         except Exception as e:
             errorhandler(e)
             print("url: " + url)
-        sevenseq.dot(True)
-        time.sleep(0.1)
-        sevenseq.dot(False)
-        time.sleep(2.4)
-        sevenseq.dot(True)
-        time.sleep(0.1)
-        sevenseq.dot(False)
-        time.sleep(2.4)
+        if(silentmode == 0):    
+            sevenseq.dot(True)
+            time.sleep(0.1)
+            sevenseq.dot(False)
+            time.sleep(2.4)
+            sevenseq.dot(True)
+            time.sleep(0.1)
+            sevenseq.dot(False)
+            time.sleep(2.4)
+        else:
+            time.sleep(5)
