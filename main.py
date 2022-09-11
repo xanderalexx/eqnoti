@@ -1,19 +1,26 @@
 import config.config as config
+import os
+import logging
 import time
 import requests
 import json
 from datetime import date
 import discord
 from discord import Webhook, RequestsWebhookAdapter
-import sevenseq.sevenseq as sevenseq
+#import sevenseq.sevenseq as sevenseq
 import sys
+import epaper.epaper as epaper
 
-print(len(sys.argv), str(sys.argv))
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+logger.info(str(len(sys.argv)) + " " + str(sys.argv))
 silentmode = 0
-
 try:
     if sys.argv[1] == "silent":
         silentmode = 1
+    else:
+        silentmode = 0
 except:
     print("")
 updates = 0
@@ -23,6 +30,17 @@ datalist2 = ['']
 
 wclient = Webhook.from_url(config.webhookurl, adapter=RequestsWebhookAdapter())
 errorclient = Webhook.from_url(config.errorwebhookurl, adapter=RequestsWebhookAdapter())
+largeclient = Webhook.from_url(config.largewebhookurl, adapter=RequestsWebhookAdapter())
+
+bruh = False
+epochh = time.time()
+while bruh == False:
+    try:
+        errorclient.send("Starting up... (" + time.strftime('%I:%M:%S %p %m/%d/%Y', time.localtime(epochh)) + ")")
+    except Exception as e:
+        print(str(e))
+    else:
+        bruh = True
 
 session = requests.Session()
 today = date.today()
@@ -64,14 +82,10 @@ def returnembed(data_, geo):
     embeded.add_field(name = "**What:** ", value = "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + convertplace(place))
     embeded.add_field(name = "**Where:**", value = geourl)
     embeded.add_field(name = "**Details:**", value = urll)
-    #pings = "<@&921000883322511400>"
-    #if mag >= 3.5:
-    #    pings = pings + ", <@&921002317766086656>"
-    #embeded.add_field(name = "**Pings:**", value = pings)
     return embeded
 
 def errorhandler(ex):
-    print("eqnoti is currently experiencing an error and is being handled. Here is the error message: \n" + str(ex))
+    logger.error("eqnoti is currently experiencing an error and is being handled. Here is the error message: \n" + str(ex))
     epoch = time.time()
     current_time = time.strftime('%I:%M:%S %p %m/%d/%Y', time.localtime(epoch))
     while True:
@@ -79,7 +93,7 @@ def errorhandler(ex):
             errormessage = "eqnoti has encountered an error @ " + current_time + ". Here is the error message: '" + str(ex) + "'"
             errorclient.send(errormessage)
         except:
-            continue
+            pass
         else:
             break
         time.sleep(0.5)
@@ -88,7 +102,6 @@ while True:
     try:
         initdata = session.get(url)
     except Exception as e:
-        print(str(e))
         errorhandler(e)
     else:
         try:
@@ -96,21 +109,18 @@ while True:
             try:
                 data_ = data['features'][0]['properties']
             except Exception as e:
-                if(silentmode == 0):
-                    sevenseq.setnum(0, 1)
                 errorhandler(e)
-                print(url)
             else:
                 curtime = data['features'][0]['properties']['ids']
                 if curtime == id:
                     updates = updates + 1
-                    #sevenseq.setnum(updates)
+                    current_time = time.strftime('%I:%M:%S %p %m/%d/%Y', time.localtime(time.time()))
                     if updates <= 1:
-                        print(str(updates) + " update since last quake (curtime = '" + curtime + "', id = '" + id + "")
+                        logger.info(str(updates) + " update since last quake (" + current_time + ")")
                     else:
-                        print(str(updates) + " updates since last quake (curtime = '" + curtime + "', id = '" + id + "")
+                        logger.info(str(updates) + " updates since last quake (" + current_time + ")")
                 elif data_['ids'] in datalist and data_['ids'] not in datalist2:
-                    print("Earthquake already in datalist detected: \n" + str(mag) + ": " + "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + convertplace(place))
+                    logging.info("Earthquake already in datalist detected: \n" + str(mag) + ": " + "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + convertplace(place))
                     datalist2.append(data_['ids'])
                 else:
                     datalist.append(data_['ids'])
@@ -119,30 +129,21 @@ while True:
                     title = data_['title']
                     urll = data_['url']
                     place = data_['place']
+                    epoch = data_['time']
                     newplace = convertplace(place)
                     embeded = returnembed(data_, data['features'][0]['geometry'])
                     pings = "<@&921000883322511400>"
                     if round(mag, 1) >= 3.5:
                         pings = pings + ", <@&921002317766086656>"
-                    wclient.send(pings + " " + str(round(mag, 1)) + " MMI EQ " + newplace)
+                        largeclient.send(str(round(mag, 1)) + " Magnitute EQ " + newplace + " " + pings)
+                        largeclient.send(embed=embeded)
+                    wclient.send(str(round(mag, 1)) + " Magnitute EQ " + newplace + " " + pings)
                     wclient.send(embed=embeded)
-                    #neweq(round(mag, 1), title, urll)
-                    #client.get_channel(config.channelid).send("Earthquake! " + title)
-                    print(str(mag) + ": " + "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + newplace)
-                    if(silentmode == 0):
-                        sevenseq.setnum(round(mag, 1), 2)
+                    msg = str(mag) + ": " + "A " + str(round(mag, 1)) + " magnitude earthquake occurred " + newplace
+                    logger.info(msg)
+                    if silentmode != 1:
+                        epaper.displayy(str(round(mag, 1)), newplace, time.strftime('%m/%d/%Y %I:%M:%S %p', time.localtime(epoch / 1000)), data['features'][0]['geometry'])
                     updates = 0
         except Exception as e:
             errorhandler(e)
-            print("url: " + url)
-        if(silentmode == 0):    
-            sevenseq.dot(True)
-            time.sleep(0.1)
-            sevenseq.dot(False)
-            time.sleep(2.4)
-            sevenseq.dot(True)
-            time.sleep(0.1)
-            sevenseq.dot(False)
-            time.sleep(2.4)
-        else:
-            time.sleep(5)
+        time.sleep(5)
